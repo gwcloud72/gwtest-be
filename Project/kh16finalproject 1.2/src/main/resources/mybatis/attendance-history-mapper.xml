@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="attendanceHistory">
+
+	<insert id="insert">
+		insert into attendance_history(
+			attendance_history_no, 
+			attendance_history_member_id
+		) values (
+			seq_attendance_history.nextval, 
+			#{attendanceHistoryMemberId}
+		)
+	</insert>
+
+	<select id="selectList" resultType="attendanceHistoryDto">
+		select * from attendance_history 
+		where attendance_history_member_id = #{memberId}
+		order by attendance_history_date desc
+	</select>
+	
+	<delete id="delete">
+		delete attendance_history 
+		where attendance_history_no = #{no}
+	</delete>
+
+	<delete id="deleteAll">
+		delete attendance_history 
+		where attendance_history_member_id = #{memberId}
+	</delete>
+	
+	<select id="selectCalendarDates" resultType="string">
+        SELECT TO_CHAR(attendance_history_date, 'YYYY-MM-DD')
+        FROM attendance_history
+        WHERE attendance_history_member_id = #{memberId}
+        ORDER BY attendance_history_date ASC
+    </select>
+    
+
+</mapper>

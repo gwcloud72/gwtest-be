@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="icon">
+
+
+    <insert id="insert">
+        INSERT INTO ICON (icon_id, icon_name, icon_rarity, icon_category, icon_src, icon_contents)
+        VALUES (seq_icon.nextval, #{iconName}, #{iconRarity}, #{iconCategory}, #{iconSrc}, #{iconContents})
+    </insert>
+
+    <update id="update">
+        UPDATE ICON SET 
+            icon_name = #{iconName},
+            icon_rarity = #{iconRarity},
+            icon_category = #{iconCategory},
+            icon_src = #{iconSrc}
+        WHERE icon_id = #{iconId}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM ICON WHERE icon_id = #{iconId}
+    </delete>
+
+    <select id="selectList" resultType="IconDto">
+        SELECT * FROM ICON ORDER BY icon_id DESC
+    </select>
+    
+    <select id="selectListByContents" resultType="IconDto">
+        SELECT * FROM ICON WHERE icon_contents = ${iconContents}ORDER BY icon_id DESC
+    </select>
+    
+    
+
+<select id="countIcons" resultType="int">
+    SELECT count(*) FROM ICON
+    <where>
+        <if test="category != null and category != 'ALL'">
+            AND icon_category = #{category}
+        </if>
+        <if test="rarity != null and rarity != 'ALL'">
+            AND icon_rarity = #{rarity}
+        </if>
+    </where>
+</select>
+
+<select id="selectListPaging" resultType="IconDto">
+    SELECT * FROM (
+        SELECT TMP.*, ROWNUM RN FROM (
+            SELECT * FROM ICON
+            <where>
+                <if test="category != null and category != 'ALL'">
+                    AND icon_category = #{category}
+                </if>
+                <if test="rarity != null and rarity != 'ALL'">
+                    AND icon_rarity = #{rarity}
+                </if>
+            </where>
+            ORDER BY icon_id DESC
+        ) TMP
+    )
+    WHERE RN BETWEEN #{startRow} AND #{endRow}
+</select>
+
+</mapper>

@@ -149,122 +149,104 @@
 		where member_id = #{memberId}
 	</select>		
 	
-<!-- 신뢰도 차감 -->
-<update id="deleteReliability">
-    UPDATE member
-    SET member_reliability = member_reliability - #{rel}
-    WHERE member_id = #{memberId}
-</update>
+	<update id="deleteReliability">
+		update member
+		set member_reliability = member_reliability - #{rel}
+		where member_id = #{memberId}
+	</update>
+	
+	<update id="updateMemberLevel">
+		update member
+		set member_level = #{memberLevel}
+		where member_id = #{memberId}
+	</update>
+	
+	<!-- 삭제 -->
+	<delete id="delete">
+		delete member where member_id = #{memberId}
+	</delete>
+	<update id="updateMemberIcon">
+        UPDATE MEMBER SET MEMBER_ICON_NO = #{iconId} WHERE MEMBER_ID = #{memberId}
+    </update>
 
-<!-- 회원 등급 변경 -->
-<update id="updateMemberLevel">
-    UPDATE member
-    SET member_level = #{memberLevel}
-    WHERE member_id = #{memberId}
-</update>
-
-<!-- 회원 삭제 -->
-<delete id="delete">
-    DELETE FROM member
-    WHERE member_id = #{memberId}
-</delete>
-
-<!-- 회원 프로필 아이콘 설정 -->
-<update id="updateMemberIcon">
-    UPDATE MEMBER
-    SET MEMBER_ICON_NO = #{iconId}
-    WHERE MEMBER_ID = #{memberId}
-</update>
-
-<!-- 회원 프로필 아이콘 해제 -->
-<update id="deleteMemberIcon">
-    UPDATE MEMBER
-    SET MEMBER_ICON_NO = NULL
-    WHERE MEMBER_ID = #{memberId}
-</update>
-
-<!-- 회원 정보 단건 조회 -->
+    <update id="deleteMemberIcon">
+        UPDATE MEMBER SET MEMBER_ICON_NO = NULL WHERE MEMBER_ID = #{memberId}
+    </update>
+    
 <select id="selectMap" resultType="MemberDto">
     SELECT 
-        MEMBER_ID        AS memberId,
-        MEMBER_PW        AS memberPw,
-        MEMBER_NICKNAME  AS memberNickname,
-        MEMBER_EMAIL     AS memberEmail,
-        MEMBER_CONTACT   AS memberContact,
-        MEMBER_BIRTH     AS memberBirth,
-        MEMBER_POST      AS memberPost,
-        MEMBER_ADDRESS1  AS memberAddress1,
-        MEMBER_ADDRESS2  AS memberAddress2,
-        MEMBER_LEVEL     AS memberLevel,
-        MEMBER_POINT     AS memberPoint,
-        MEMBER_JOIN      AS memberJoin
-    FROM MEMBER
+        MEMBER_ID as memberId,
+        MEMBER_PW as memberPw,
+        MEMBER_NICKNAME as memberNickname,
+        MEMBER_EMAIL as memberEmail,
+        MEMBER_CONTACT as memberContact,
+        MEMBER_BIRTH as memberBirth,
+        MEMBER_POST as memberPost,
+        MEMBER_ADDRESS1 as memberAddress1,
+        MEMBER_ADDRESS2 as memberAddress2,
+        MEMBER_LEVEL as memberLevel,
+        MEMBER_POINT as memberPoint,
+        MEMBER_JOIN as memberJoin
+        FROM MEMBER
     WHERE MEMBER_ID = #{memberId}
 </select>
 
-<!-- 포인트 증가 -->
 <update id="upPoint">
     UPDATE member
     SET member_point = member_point + #{memberPoint}
     WHERE member_id = #{memberId}
 </update>
-
-<!-- 전체 포인트 랭킹 인원 수 -->
+	
 <select id="countTotalRanking" resultType="int">
-    SELECT COUNT(*)
-    FROM member
-    WHERE member_level != '관리자'
-    <if test="keyword != null and keyword != ''">
-        AND member_nickname LIKE '%' || #{keyword} || '%'
-    </if>
-</select>
+        SELECT COUNT(*) 
+        FROM member
+        WHERE member_level != '관리자'
+        <if test="keyword != null and keyword != ''">
+            AND member_nickname LIKE '%' || #{keyword} || '%'
+        </if>
+    </select>
 
-<!-- 포인트 랭킹 조회 -->
-<select id="totalPointRanking" resultType="PointRankingVO">
-    SELECT * FROM (
-        SELECT TMP.*, ROWNUM AS rn FROM (
-            SELECT 
-                member_id       AS memberId,
-                member_nickname AS nickname,
-                member_point    AS point,
-                member_level    AS level,
-                RANK() OVER (ORDER BY member_point DESC) AS ranking
-            FROM member
-            WHERE member_level != '관리자'
-            <if test="keyword != null and keyword != ''">
-                AND member_nickname LIKE '%' || #{keyword} || '%'
-            </if>
-            ORDER BY member_point DESC  
-        ) TMP
-    )
-    WHERE rn BETWEEN #{start} AND #{end}
-</select>
+    <select id="totalPointRanking" resultType="PointRankingVO">
+        SELECT * FROM (
+            SELECT TMP.*, ROWNUM AS rn FROM (
+                SELECT 
+                    member_id AS "memberId", 
+                    member_nickname AS "nickname", 
+                    member_point AS "point", 
+                    member_level AS "level",
+                    RANK() OVER (ORDER BY member_point DESC) AS "ranking"
+                FROM member
+                WHERE member_level != '관리자'
+                <if test="keyword != null and keyword != ''">
+                    AND member_nickname LIKE '%' || #{keyword} || '%'
+                </if>
+		ORDER BY "ranking" ASC
+		) TMP
+		)
+		WHERE rn BETWEEN #{start} AND #{end}
+    </select>
 
-<!-- 관리자용 포인트 목록 개수 -->
-<select id="countPointAdminList" resultType="int">
-    SELECT COUNT(*)
-    FROM member
-    WHERE member_level != '관리자'
-    <if test="keyword != null and keyword != ''">
-        AND (member_id LIKE '%' || #{keyword} || '%'
+
+   <select id="countPointAdminList" resultType="int">
+    SELECT COUNT(*) FROM member
+    WHERE member_level != '관리자' <if test="keyword != null and keyword != ''">
+        AND (member_id LIKE '%' || #{keyword} || '%' 
              OR member_nickname LIKE '%' || #{keyword} || '%')
     </if>
 </select>
 
-<!-- 관리자용 회원 포인트 목록 -->
 <select id="selectPointAdminList" resultType="MemberDto">
     SELECT * FROM (
         SELECT TMP.*, ROWNUM RN FROM (
             SELECT 
-                member_id        AS memberId,
-                member_nickname  AS memberNickname,
-                member_point     AS memberPoint,
-                member_level     AS memberLevel,
-                TO_CHAR(member_join, 'YYYY-MM-DD') AS memberJoinDate
+                member_id AS "memberId", 
+                member_nickname AS "memberNickname", 
+                member_point AS "memberPoint", 
+                member_level AS "memberLevel", 
+                to_char(member_join, 'YYYY-MM-DD') as "memberJoinDate"
             FROM member
-            WHERE member_level != '관리자'
-            <if test="keyword != null and keyword != ''">
-                AND (member_id LIKE '%' || #{keyword} || '%'
+            WHERE member_level != '관리자' <if test="keyword != null and keyword != ''">
+                AND (member_id LIKE '%' || #{keyword} || '%' 
                      OR member_nickname LIKE '%' || #{keyword} || '%')
             </if>
             ORDER BY member_join DESC
@@ -273,18 +255,17 @@
     WHERE RN BETWEEN #{start} AND #{end}
 </select>
 
-<!-- 관리자 포인트 직접 수정 -->
-<update id="adminUpdatePoint">
-    UPDATE member
-    SET member_point = member_point + #{amount}
-    WHERE member_id = #{memberId}
-</update>
+    <update id="adminUpdatePoint">
+        UPDATE member 
+        SET member_point = member_point + #{amount}
+        WHERE member_id = #{memberId}
+    </update>
 
-<!-- 관리자 회원 정보 수정 -->
-<update id="adminUpdateMemberInfo">
-    UPDATE member
-    SET member_nickname = #{memberNickname},
-        member_level = #{memberLevel}
-    WHERE member_id = #{memberId}
-</update>
+    <update id="adminUpdateMemberInfo">
+        UPDATE member
+        SET member_nickname = #{memberNickname},
+            member_level = #{memberLevel}
+        WHERE member_id = #{memberId}
+    </update>
+
 </mapper>

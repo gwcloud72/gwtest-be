@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="pointhistory">
+
+  <insert id="insert">
+      INSERT INTO point_history(
+          point_history_id, 
+          point_history_member_id, 
+          point_history_amount, 
+          point_history_trx_type,
+          point_history_reason 
+      )
+      VALUES(
+          seq_point_history.nextval, 
+          #{pointHistoryMemberId}, 
+          #{pointHistoryAmount}, 
+          #{pointHistoryTrxType},
+          #{pointHistoryReason}
+      )
+  </insert>
+
+  <select id="selectListByMemberId" resultType="PointHistoryDto">
+      SELECT 
+          point_history_id as pointHistoryId,
+          point_history_member_id as pointHistoryMemberId,
+          point_history_amount as pointHistoryAmount,
+          point_history_trx_type as pointHistoryTrxType,
+          point_history_reason as pointHistoryReason, 
+          point_history_created_at as pointHistoryCreatedAt
+      FROM point_history
+      WHERE point_history_member_id = #{memberId}
+      ORDER BY point_history_id DESC
+  </select>
+  
+  <select id="selectOne" resultType="PointHistoryDto">
+      SELECT 
+          point_history_id as pointHistoryId,
+          point_history_member_id as pointHistoryMemberId,
+          point_history_amount as pointHistoryAmount,
+          point_history_trx_type as pointHistoryTrxType,
+          point_history_reason as pointHistoryReason,
+          point_history_created_at as pointHistoryCreatedAt
+      FROM point_history
+      WHERE point_history_id = #{pointHistoryId}
+  </select>
+
+  <update id="update">
+      UPDATE point_history
+      SET
+          point_history_trx_type = #{pointHistoryTrxType}, 
+          point_history_amount = #{pointHistoryAmount},
+          point_history_reason = #{pointHistoryReason}
+      WHERE
+          point_history_id = #{pointHistoryId}
+  </update>
+
+  <select id="selectListByMemberIdPaging" resultType="PointHistoryDto">
+    SELECT * FROM (
+        SELECT TMP.*, ROWNUM RN FROM (
+            SELECT 
+                point_history_id as pointHistoryId,
+                point_history_member_id as pointHistoryMemberId,
+                point_history_amount as pointHistoryAmount,
+                point_history_trx_type as pointHistoryTrxType,
+                point_history_reason as pointHistoryReason, 
+                point_history_created_at as pointHistoryCreatedAt
+            FROM point_history
+            WHERE point_history_member_id = #{memberId}
+            <choose>
+                <when test="type == 'earn'">AND point_history_amount > 0</when>
+                <when test="type == 'use'">AND point_history_amount &lt; 0</when>
+                <when test="type == 'item'">AND point_history_amount = 0</when>
+            </choose>
+            ORDER BY point_history_id DESC
+        ) TMP
+    )
+    WHERE RN BETWEEN #{startRow} AND #{endRow}
+  </select>
+  
+  <select id="countHistory" resultType="int">
+    SELECT count(*) 
+    FROM point_history 
+    WHERE point_history_member_id = #{memberId}
+    <choose>
+        <when test="type == 'earn'">AND point_history_amount > 0</when>
+        <when test="type == 'use'">AND point_history_amount &lt; 0</when>
+        <when test="type == 'item'">AND point_history_amount = 0</when>
+    </choose>
+  </select>
+
+  <select id="countTodayPurchase" resultType="int">
+    SELECT count(*) 
+    FROM point_history 
+    WHERE point_history_member_id = #{memberId}
+    AND point_history_reason LIKE '%' || #{itemName} || '%'
+    AND TRUNC(point_history_created_at) = TRUNC(SYSDATE)
+    AND point_history_trx_type = 'USE'
+  </select>
+  
+</mapper>

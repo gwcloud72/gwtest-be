@@ -230,7 +230,6 @@ public class MemberRestController {
 	public List<MemberReviewListVO> selectReviewList(@PathVariable String loginId){
 		return memberReviewDao.selectList(loginId);
 	}
-	
 	// 찜한 콘텐츠 목록
 	@GetMapping("/mywatch/{loginId}")
 	public List<MemberWatchListVO> selectWatchList(@PathVariable String loginId){

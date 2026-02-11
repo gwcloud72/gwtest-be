@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dailyquest">
+
+
+    <select id="selectTodayLogs" resultType="map">
+        SELECT 
+            POINT_GET_QUEST_TYPE      AS "type",
+            POINT_GET_QUEST_COUNT     AS "count",
+            POINT_GET_QUEST_REWARD_YN AS "rewardYn"
+        FROM POINT_GET_QUEST_LOG
+        WHERE POINT_GET_QUEST_MEMBER_ID = #{memberId}
+          AND TO_CHAR(POINT_GET_QUEST_DATE, 'YYYYMMDD') = #{date}
+    </select>
+
+    <update id="upsertQuestLog">
+        MERGE INTO POINT_GET_QUEST_LOG L
+        USING DUAL
+           ON (L.POINT_GET_QUEST_MEMBER_ID = #{memberId}
+               AND L.POINT_GET_QUEST_TYPE = #{type}
+               AND TO_CHAR(L.POINT_GET_QUEST_DATE, 'YYYYMMDD') = #{date})
+        WHEN MATCHED THEN
+            UPDATE SET L.POINT_GET_QUEST_COUNT = L.POINT_GET_QUEST_COUNT + 1
+        WHEN NOT MATCHED THEN
+            INSERT (
+                POINT_GET_QUEST_LOG_ID,
+                POINT_GET_QUEST_MEMBER_ID,
+                POINT_GET_QUEST_TYPE,
+                POINT_GET_QUEST_DATE,
+                POINT_GET_QUEST_COUNT,
+                POINT_GET_QUEST_REWARD_YN,
+                POINT_GET_QUEST_CREATED_AT
+            ) VALUES (
+                seq_point_get_quest_log.nextval,
+                #{memberId},
+                #{type},
+                TO_DATE(#{date}, 'YYYYMMDD'),
+                1,
+                'N',
+                SYSTIMESTAMP
+            )
+    </update>
+
+    <update id="updateRewardStatus">
+        UPDATE POINT_GET_QUEST_LOG
+        SET POINT_GET_QUEST_REWARD_YN = 'Y'
+        WHERE POINT_GET_QUEST_MEMBER_ID = #{memberId}
+          AND POINT_GET_QUEST_TYPE = #{type}
+          AND TO_CHAR(POINT_GET_QUEST_DATE, 'YYYYMMDD') = #{date}
+          AND POINT_GET_QUEST_REWARD_YN = 'N' -- 이미 받은 경우 중복 방지
+    </update>
+
+</mapper>

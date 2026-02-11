@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pointWishlist">
+
+
+    <insert id="insert">
+        INSERT INTO POINT_WISHLIST (
+            POINT_WISHLIST_NO, 
+            POINT_WISHLIST_MEMBER_ID, 
+            POINT_WISHLIST_ITEM_NO
+        )
+        VALUES (
+            SEQ_POINT_WISHLIST.NEXTVAL, 
+            #{memberId}, 
+            #{itemNo}
+        )
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM POINT_WISHLIST 
+        WHERE POINT_WISHLIST_MEMBER_ID = #{memberId} 
+          AND POINT_WISHLIST_ITEM_NO = #{itemNo}
+    </delete>
+
+    <select id="checkWish" resultType="int">
+        SELECT COUNT(*) 
+        FROM POINT_WISHLIST 
+        WHERE POINT_WISHLIST_MEMBER_ID = #{memberId} 
+          AND POINT_WISHLIST_ITEM_NO = #{itemNo}
+    </select>
+    
+    <select id="selectMyWishItemNos" resultType="long">
+        SELECT POINT_WISHLIST_ITEM_NO 
+        FROM POINT_WISHLIST 
+        WHERE POINT_WISHLIST_MEMBER_ID = #{memberId}
+    </select>
+
+ <select id="selectMyWishlist" resultType="PointWishlistDto">
+        SELECT 
+            T1.POINT_WISHLIST_NO        AS pointWishlistNo,
+            T1.POINT_WISHLIST_MEMBER_ID AS pointWishlistMemberId,
+            T1.POINT_WISHLIST_ITEM_NO   AS pointWishlistItemNo,
+            T1.POINT_WISHLIST_TIME      AS pointWishlistTime,
+            
+            T2.POINT_ITEM_NAME          AS pointItemName,
+            T2.POINT_ITEM_SRC           AS pointItemSrc,
+            T2.POINT_ITEM_PRICE         AS pointItemPrice
+        FROM 
+            POINT_WISHLIST T1
+        INNER JOIN 
+            POINT_ITEM_STORE T2 -- ★ 여기를 POINT_ITEM_STORE 로 수정해야 합니다!
+        ON 
+            T1.POINT_WISHLIST_ITEM_NO = T2.POINT_ITEM_NO
+        WHERE 
+            T1.POINT_WISHLIST_MEMBER_ID = #{memberId}
+        ORDER BY 
+            T1.POINT_WISHLIST_TIME DESC
+    </select>
+
+</mapper>

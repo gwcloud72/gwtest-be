@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="inventory">
+  
+  
+  <select id="sequence" resultType="int">
+      SELECT seq_inventory.nextval FROM dual
+  </select>
+
+  <insert id="insert">
+      INSERT INTO INVENTORY(
+          inventory_no,       
+          inventory_member_id, 
+          inventory_item_no,
+          inventory_equipped  )
+      VALUES(
+          seq_inventory.nextval, 
+          #{inventoryMemberId},   
+          #{inventoryItemNo},     
+          'N'                 )
+  </insert>
+  
+  <update id="update">
+      UPDATE INVENTORY
+      SET
+          inventory_quantity = #{inventoryQuantity},
+          inventory_equipped = #{inventoryEquipped}
+      WHERE
+          inventory_no = #{inventoryNo}
+  </update>
+
+  <select id="selectOne" resultType="InventoryDto">
+      SELECT 
+          inventory_no as inventoryNo,
+          inventory_member_id as inventoryMemberId,
+          inventory_item_no as inventoryItemNo,
+          inventory_created_at as inventoryCreatedAt,
+          inventory_quantity as inventoryQuantity,
+          inventory_equipped as inventoryEquipped
+      FROM INVENTORY
+      WHERE inventory_no = #{inventoryNo}
+  </select>
+
+  <select id="selectList" resultType="InventoryDto">
+      SELECT 
+          inventory_no as inventoryNo,
+          inventory_member_id as inventoryMemberId,
+          inventory_item_no as inventoryItemNo,
+          inventory_created_at as inventoryCreatedAt,
+          inventory_quantity as inventoryQuantity,
+          inventory_equipped as inventoryEquipped
+      FROM INVENTORY
+      WHERE inventory_member_id = #{inventoryMemberId}
+      ORDER BY inventory_no DESC
+  </select>
+  
+
+
+<select id="selectListByMemberId" resultType="InventoryDto">
+    SELECT 
+        I.INVENTORY_NO          AS "inventoryNo",
+        I.INVENTORY_MEMBER_ID   AS "inventoryMemberId",
+        I.INVENTORY_ITEM_NO     AS "inventoryItemNo",
+        I.INVENTORY_CREATED_AT  AS "inventoryCreatedAt",
+        I.INVENTORY_QUANTITY    AS "inventoryQuantity",
+        I.INVENTORY_EQUIPPED    AS "inventoryEquipped",
+        
+        -- 상점(POINT_ITEM_STORE)에서 가져올 정보
+        P.POINT_ITEM_NAME       AS "pointItemName",
+        P.POINT_ITEM_SRC        AS "pointItemSrc",
+        P.POINT_ITEM_TYPE       AS "pointItemType",
+        P.POINT_ITEM_CONTENT    AS "pointItemContent"
+
+    FROM INVENTORY I
+
+    JOIN POINT_ITEM_STORE P 
+        ON I.INVENTORY_ITEM_NO = P.POINT_ITEM_NO
+        
+    WHERE I.INVENTORY_MEMBER_ID = #{loginId}
+    ORDER BY I.INVENTORY_CREATED_AT DESC
+</select>
+  <delete id="delete">
+      DELETE FROM INVENTORY
+      WHERE inventory_no = #{inventoryNo}
+  </delete>
+<select id="selectListByAdmin" resultType="InventoryDto">
+    SELECT 
+        I.INVENTORY_NO          AS "inventoryNo",
+        I.INVENTORY_MEMBER_ID   AS "inventoryMemberId",
+        I.INVENTORY_ITEM_NO     AS "inventoryItemNo",
+        I.INVENTORY_CREATED_AT  AS "inventoryCreatedAt",
+        I.INVENTORY_EQUIPPED    AS "inventoryEquipped",
+        I.INVENTORY_QUANTITY    AS "inventoryQuantity",
+        P.POINT_ITEM_NAME       AS "pointItemName",
+        P.POINT_ITEM_SRC        AS "pointItemSrc",
+        P.POINT_ITEM_TYPE       AS "pointItemType"
+    FROM INVENTORY I
+
+    LEFT OUTER JOIN POINT_ITEM_STORE P ON I.INVENTORY_ITEM_NO = P.POINT_ITEM_NO
+
+    JOIN MEMBER M ON I.INVENTORY_MEMBER_ID = M.MEMBER_ID
+    WHERE I.INVENTORY_MEMBER_ID = #{memberId}
+
+      AND M.MEMBER_LEVEL != '관리자'
+    ORDER BY I.INVENTORY_CREATED_AT DESC
+</select>
+
+<select id="selectOneByMemberAndItem" resultType="InventoryDto">
+    SELECT 
+        INVENTORY_NO AS "inventoryNo",
+        INVENTORY_MEMBER_ID AS "inventoryMemberId",
+        INVENTORY_ITEM_NO AS "inventoryItemNo",
+        INVENTORY_QUANTITY AS "inventoryQuantity",
+        INVENTORY_CREATED_AT AS "inventoryCreatedAt",
+        INVENTORY_EQUIPPED AS "inventoryEquipped"
+    FROM INVENTORY
+    WHERE INVENTORY_MEMBER_ID = #{inventoryMemberId}
+      AND INVENTORY_ITEM_NO = #{inventoryItemNo}
+</select>
+
+<update id="unequipByType">
+    UPDATE inventory 
+    SET inventory_equipped = 'N'
+    WHERE inventory_member_id = #{memberId}
+    AND inventory_item_no IN (
+        SELECT point_item_no 
+        FROM point_item_store 
+        WHERE point_item_type = #{type}
+    )
+</update>
+
+<select id="fetchAdminMemberList" resultType="MemberDto">
+      SELECT * FROM (
+          SELECT rownum rn, tmp.* FROM (
+              SELECT * FROM member
+              <where>
+                  <if test="keyword != null and keyword != ''">
+                      (member_id LIKE '%' || #{keyword} || '%' 
+                       OR member_nickname LIKE '%' || #{keyword} || '%')
+                  </if>
+                  AND member_level != '관리자'
+              </where>
+              ORDER BY member_id ASC
+          ) tmp
+      ) WHERE rn BETWEEN #{startRow} AND #{endRow}
+  </select>
+
+  <select id="countAdminMembers" resultType="int">
+      SELECT count(*) FROM member
+      <where>
+          <if test="keyword != null and keyword != ''">
+              (member_id LIKE '%' || #{keyword} || '%' 
+               OR member_nickname LIKE '%' || #{keyword} || '%')
+          </if>
+          AND member_level != '관리자'
+      </where>
+  </select>
+</mapper>

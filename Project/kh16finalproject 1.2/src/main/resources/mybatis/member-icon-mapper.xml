@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="memberIcon">
+
+  <select id="selectMyIcons" resultType="MemberIconDto">
+    SELECT 
+        MI.MEMBER_ICONS_ID          AS "memberIconId",
+        MI.MEMBER_ICONS_MEMBER_ID   AS "memberId",    
+        MI.MEMBER_ICONS_ICON_ID     AS "iconId",      
+        MI.MEMBER_ICONS_OBTAIN_TIME AS "memberIconObtainTime",
+        MI.IS_EQUIPPED              AS "isEquipped",
+
+        I.ICON_NAME                 AS "iconName",
+        I.ICON_RARITY               AS "iconRarity",
+        I.ICON_SRC                  AS "iconSrc"
+
+    FROM MEMBER_ICONS MI
+    JOIN ICON I ON MI.MEMBER_ICONS_ICON_ID = I.ICON_ID
+    WHERE MI.MEMBER_ICONS_MEMBER_ID = #{memberId}
+    ORDER BY 
+        -- ★ 등급 정렬 로직 수정 (COMMON 추가)
+        CASE I.ICON_RARITY 
+            WHEN 'LEGENDARY' THEN 1
+            WHEN 'UNIQUE'    THEN 2
+            WHEN 'EPIC'      THEN 3
+            WHEN 'RARE'      THEN 4
+            WHEN 'COMMON'    THEN 5  WHEN 'EVENT'     THEN 6  ELSE 7 
+        END ASC,
+        MI.MEMBER_ICONS_OBTAIN_TIME DESC
+</select>
+
+    <select id="checkUserHasIcon" resultType="int">
+        SELECT count(*) 
+        FROM MEMBER_ICONS 
+        WHERE MEMBER_ICONS_MEMBER_ID = #{memberId} 
+          AND MEMBER_ICONS_ICON_ID = #{iconId}
+    </select>
+
+    <insert id="insertMemberIcon">
+        INSERT INTO MEMBER_ICONS (
+            MEMBER_ICONS_ID, 
+            MEMBER_ICONS_MEMBER_ID, 
+            MEMBER_ICONS_ICON_ID, 
+            MEMBER_ICONS_OBTAIN_TIME
+        )
+        VALUES (
+            seq_member_icons.nextval, 
+            #{memberId},  -- DAO에서 "memberId"로 보냄
+            #{iconId},    -- DAO에서 "iconId"로 보냄
+            SYSTIMESTAMP
+        )
+    </insert>
+
+    <update id="unequipAllIcons">
+        UPDATE MEMBER_ICONS 
+        SET IS_EQUIPPED = 'N'
+        WHERE MEMBER_ICONS_MEMBER_ID = #{memberId}
+    </update>
+
+    <update id="equipIcon">
+        UPDATE MEMBER_ICONS
+        SET IS_EQUIPPED = 'Y'
+        WHERE MEMBER_ICONS_MEMBER_ID = #{memberId}
+          AND MEMBER_ICONS_ICON_ID = #{iconId}
+    </update>
+    
+<select id="selectEquippedIconSrc" parameterType="string" resultType="string">
+    SELECT I.ICON_SRC FROM MEMBER_ICONS MI
+    JOIN ICON I ON MI.MEMBER_ICONS_ICON_ID = I.ICON_ID
+    WHERE MI.MEMBER_ICONS_MEMBER_ID = #{memberId} AND MI.IS_EQUIPPED = 'Y' AND ROWNUM &lt;= 1   
+</select>
+
+<select id="selectEquippedFrameStyle" resultType="string">
+    SELECT B.point_item_content
+    FROM inventory A
+    JOIN point_item_store B ON A.inventory_item_no = B.point_item_no
+    WHERE A.inventory_member_id = #{memberId}
+      AND A.inventory_equipped = 'Y'
+      AND B.point_item_type = 'DECO_FRAME'
+</select>
+
+<select id="selectEquippedBgStyle" resultType="string">
+    SELECT B.point_item_src  FROM inventory A
+    JOIN point_item_store B ON A.inventory_item_no = B.point_item_no
+    WHERE A.inventory_member_id = #{memberId}
+      AND A.inventory_equipped = 'Y'
+      AND B.point_item_type = 'DECO_BG'
+</select>
+
+<select id="selectEquippedNickStyle" resultType="string">
+    SELECT B.point_item_content
+    FROM inventory A
+    JOIN point_item_store B ON A.inventory_item_no = B.point_item_no
+    WHERE A.inventory_member_id = #{memberId}
+      AND A.inventory_equipped = 'Y'
+      AND B.point_item_type = 'DECO_NICK'
+</select>
+<update id="unequipAllItemsByType">
+    UPDATE INVENTORY SET INVENTORY_EQUIPPED = 'N'
+    WHERE INVENTORY_MEMBER_ID = #{memberId}
+    AND INVENTORY_ITEM_NO IN (
+        SELECT POINT_ITEM_NO 
+        FROM POINT_ITEM 
+        WHERE POINT_ITEM_TYPE = #{itemType}
+    )
+</update>
+
+
+<update id="equipItem">
+    UPDATE INVENTORY 
+    SET INVENTORY_EQUIPPED = 'Y'
+    WHERE INVENTORY_NO = #{inventoryNo}
+</update>
+ <!-- 특정 유저 아이콘 조회 (관리자 제외) -->
+    <select id="selectUserIconsDetail"
+            parameterType="string"
+            resultType="MemberIconDto">
+        SELECT 
+            MI.MEMBER_ICONS_ID          AS memberIconId,
+            MI.MEMBER_ICONS_MEMBER_ID   AS memberId,
+            MI.MEMBER_ICONS_ICON_ID     AS iconId,
+            MI.MEMBER_ICONS_OBTAIN_TIME AS memberIconObtainTime,
+            MI.IS_EQUIPPED              AS isEquipped,
+            I.ICON_NAME                 AS iconName,
+            I.ICON_RARITY               AS iconRarity,
+            I.ICON_SRC                  AS iconSrc
+        FROM MEMBER_ICONS MI
+        JOIN ICON I ON MI.MEMBER_ICONS_ICON_ID = I.ICON_ID
+        JOIN MEMBER M ON MI.MEMBER_ICONS_MEMBER_ID = M.MEMBER_ID
+        WHERE MI.MEMBER_ICONS_MEMBER_ID = #{memberId}
+          AND M.MEMBER_LEVEL != '관리자'
+    </select>
+
+    
+    <!-- 아이콘 회수 -->
+    <delete id="deleteMemberIcon">
+        DELETE FROM MEMBER_ICONS
+        WHERE MEMBER_ICONS_ID = #{memberIconId}
+    </delete>
+
+    <!-- 전체 아이콘 마스터 -->
+    <select id="selectIconList" resultType="IconDto">
+        SELECT * FROM ICON
+    </select>
+</mapper>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="dailyquiz">
+
+    <select id="getRandomQuiz" resultType="DailyQuizVO">
+        SELECT * FROM (
+            SELECT QUIZ_NO, QUIZ_QUESTION, QUIZ_ANSWER
+            FROM DAILY_QUIZ
+            ORDER BY DBMS_RANDOM.VALUE
+        )
+        WHERE ROWNUM = 1
+    </select>
+
+    <select id="getAnswer" parameterType="int" resultType="String">
+        SELECT QUIZ_ANSWER
+        FROM DAILY_QUIZ
+        WHERE QUIZ_NO = #{quizNo}
+    </select>
+
+
+    <insert id="insert" parameterType="DailyQuizVO">
+        INSERT INTO DAILY_QUIZ (QUIZ_NO, QUIZ_QUESTION, QUIZ_ANSWER)
+        VALUES (SEQ_DAILY_QUIZ_NO.NEXTVAL, #{quizQuestion}, #{quizAnswer})
+    </insert>
+
+    <update id="update" parameterType="DailyQuizVO">
+        UPDATE DAILY_QUIZ
+        SET QUIZ_QUESTION = #{quizQuestion},
+            QUIZ_ANSWER = #{quizAnswer}
+        WHERE QUIZ_NO = #{quizNo}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM DAILY_QUIZ WHERE QUIZ_NO = #{quizNo}
+    </delete>
+    
+<select id="selectList" parameterType="map" resultType="com.kh.finalproject.vo.DailyQuizVO">
+        SELECT * FROM (
+            SELECT ROWNUM RN, TMP.* FROM (
+                SELECT * FROM DAILY_QUIZ 
+                WHERE 1=1
+                <if test="keyword != null and keyword != ''">
+                    <if test="type == 'question'">
+                        AND INSTR(QUIZ_QUESTION, #{keyword}) > 0
+                    </if>
+                    <if test="type == 'answer'">
+                        AND INSTR(QUIZ_ANSWER, #{keyword}) > 0
+                    </if>
+                    <if test="type == 'all'">
+                        AND (INSTR(QUIZ_QUESTION, #{keyword}) > 0 OR INSTR(QUIZ_ANSWER, #{keyword}) > 0)
+                    </if>
+                </if>
+                ORDER BY QUIZ_NO DESC
+            ) TMP
+        )
+        WHERE RN BETWEEN #{startRow} AND #{endRow}
+    </select>
+    
+    <select id="count" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM DAILY_QUIZ
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            <if test="type == 'question'">
+                AND INSTR(QUIZ_QUESTION, #{keyword}) > 0
+            </if>
+            <if test="type == 'answer'">
+                AND INSTR(QUIZ_ANSWER, #{keyword}) > 0
+            </if>
+            <if test="type == 'all'">
+                AND (INSTR(QUIZ_QUESTION, #{keyword}) > 0 OR INSTR(QUIZ_ANSWER, #{keyword}) > 0)
+            </if>
+        </if>
+    </select>
+    
+</mapper>
